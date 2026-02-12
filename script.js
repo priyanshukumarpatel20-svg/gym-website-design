@@ -1,59 +1,88 @@
-// Mobile Navigation Toggle
-const navToggle = document.getElementById('navToggle');
-const navMenu = document.getElementById('navMenu');
+document.addEventListener('DOMContentLoaded', function () {
 
-navToggle.addEventListener('click', () => {
-    navMenu.classList.toggle('active');
-    navToggle.classList.toggle('active');
-});
+    // Feedback form and star rating
+    const feedbackForm = document.getElementById('feedbackForm');
+    const feedbackNameInput = document.getElementById('feedbackName');
+    const feedbackEmailInput = document.getElementById('feedbackEmail');
+    const feedbackMessageInput = document.getElementById('feedbackMessage');
+    const feedbackRatingStars = document.querySelectorAll('#feedbackRatingStars button');
+    const feedbackList = document.getElementById('feedbackList');
+    const averageRatingValue = document.getElementById('averageRatingValue');
+    const averageRatingStars = document.getElementById('averageRatingStars');
+    const averageRatingCount = document.getElementById('averageRatingCount');
 
-// Close mobile menu when clicking on a link
-const navLinks = document.querySelectorAll('.nav-menu a');
-navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        navMenu.classList.remove('active');
-        navToggle.classList.remove('active');
-    });
-});
+    const feedbackEntries = JSON.parse(localStorage.getItem('gymFeedbacks')) || [];
+    let selectedRating = 0;
 
-// Smooth scrolling for anchor links
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    });
-});
-
-// Form submission handler
-const contactForm = document.querySelector('.contact-form form');
-if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        // Here you would typically send the form data to a server
-        alert('Thank you for your message! We will get back to you soon.');
-        contactForm.reset();
-    });
-}
-
-// Add scroll effect to header
-let lastScroll = 0;
-const header = document.querySelector('.header');
-
-window.addEventListener('scroll', () => {
-    const currentScroll = window.pageYOffset;
-    
-    if (currentScroll > 100) {
-        header.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
-    } else {
-        header.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+    function setRating(rating) {
+        selectedRating = rating;
+        feedbackRatingStars.forEach(star => {
+            const value = Number(star.dataset.value);
+            star.classList.toggle('active', value <= rating);
+        });
     }
-    
-    lastScroll = currentScroll;
-});
 
+    function renderAverageRating() {
+        if (!feedbackEntries.length) {
+            averageRatingValue.textContent = '0.0';
+            averageRatingCount.textContent = 'No reviews yet';
+            return;
+        }
+
+        const total = feedbackEntries.reduce((s, i) => s + i.rating, 0);
+        averageRatingValue.textContent = (total / feedbackEntries.length).toFixed(1);
+        averageRatingCount.textContent = `Based on ${feedbackEntries.length} reviews`;
+    }
+
+    function renderFeedbackList() {
+        feedbackList.innerHTML = '';
+
+        if (!feedbackEntries.length) {
+            feedbackList.innerHTML = '<p class="feedback-empty">No feedback yet.</p>';
+            return;
+        }
+
+        feedbackEntries.forEach(entry => {
+            const div = document.createElement('div');
+            div.className = 'feedback-item';
+            div.innerHTML = `
+                <p class="feedback-item-name">${entry.name}</p>
+                <p class="feedback-item-message">${entry.message}</p>
+            `;
+            feedbackList.appendChild(div);
+        });
+    }
+
+    feedbackRatingStars.forEach(star => {
+        star.addEventListener('click', () => {
+            setRating(Number(star.dataset.value));
+        });
+    });
+
+    renderAverageRating();
+    renderFeedbackList();
+
+    feedbackForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (!selectedRating) {
+            alert('Please select a rating');
+            return;
+        }
+
+        feedbackEntries.push({
+            name: feedbackNameInput.value,
+            email: feedbackEmailInput.value,
+            message: feedbackMessageInput.value,
+            rating: selectedRating
+        });
+
+        localStorage.setItem('gymFeedbacks', JSON.stringify(feedbackEntries));
+
+        feedbackForm.reset();
+        setRating(0);
+        renderFeedbackList();
+        renderAverageRating();
+    });
+
+});
